@@ -30,6 +30,9 @@ public class PassiveScanner implements IScannerCheck {
 
     @Override
     public List<IScanIssue> doPassiveScan(IHttpRequestResponse httpRequestResponse) {
+        if (BurpExtender.getConfigPanel().getNoPassive()) {
+            return null;
+        }
         URL httpRequestURL = BurpExtender.getHelpers().analyzeRequest(httpRequestResponse).getUrl();
         String requestUrl = CommonUtils.getUrlWithoutFilename(httpRequestURL);
 

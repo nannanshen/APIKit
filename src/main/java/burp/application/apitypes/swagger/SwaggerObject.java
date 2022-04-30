@@ -28,8 +28,9 @@ public class SwaggerObject {
     public String uri;
     public String path;
     public boolean isctset;
+    public String myurl;
 
-    public SwaggerObject(List<String> headers) {
+    public SwaggerObject(List<String> headers,String url) {
         this.headers = headers;
         basePath = "";
         params = new HashMap<>();
@@ -40,6 +41,7 @@ public class SwaggerObject {
         para_bodystr = "";
         path = "";
         isctset = false;
+        myurl = url;
     }
 
     public static String replaceStr(String testStr) {
@@ -101,8 +103,12 @@ public class SwaggerObject {
         // openapi 1.2 和2.0 都可以直接取basePath  openapi3没有basePath
         if (!(link.get("basePath") == null)) {
             basePath = link.get("basePath").getAsString();
+            String[] split = myurl.split(basePath);
             if (basePath.equals("/"))
                 basePath = basePath.substring(1);
+            if (split.length>1){
+                basePath = split[0]+basePath;
+            }
         }
         //openapi3  basePath在 servers的url中，url如http:/xxx/v1 格式  可以使用相对路径  也可以使用变量的形式。
         if (!(link.get("servers") == null)) {
@@ -111,6 +117,9 @@ public class SwaggerObject {
                 basePath = url;
             else {
                 basePath = new URL(url).getPath();
+            }
+            if(!myurl.equals("") & basePath.equals("") & myurl.contains("v3")){
+                basePath = basePath+myurl.split("/v3")[0];
             }
             if (url.contains("{")) {
                 JsonObject servervariables = link.get("servers").getAsJsonObject().get("variables").getAsJsonObject();
@@ -159,6 +168,9 @@ public class SwaggerObject {
                                             JsonObject op = operation.getAsJsonObject();
                                             //获取请求包的请求方法
                                             method = op.get("method").getAsString();
+                                            if(method.equals("DELETE") || method.equals("PUT")){
+                                                continue;
+                                            }
 
                                             if (!globals_content_type)
                                                 content_type = "";
@@ -217,6 +229,9 @@ public class SwaggerObject {
                         for (Map.Entry<String, JsonElement> apiMethod : apiPath.getValue().getAsJsonObject().entrySet()) {
                             //获取请求包的请求方法
                             method = apiMethod.getKey().toUpperCase();
+                            if(method.equals("DELETE") || method.equals("PUT") || method.equals("HEAD") || method.equals("OPTIONS")){
+                                continue;
+                            }
 
                             content_type = "";
                             if (apiMethod.getValue().isJsonObject()) {
@@ -482,7 +497,12 @@ public class SwaggerObject {
                             isctset = true; //swagger content-type默认是application/json
                             newheaders.add("Content-Type: application/json");
                         }
-                        para_bodystr += "\"" + _para_name + replaceStr("\": \"" + _para_format + "\",");
+                        if(_para_format.equals("object")){
+                            para_bodystr += "\"" + _para_name + "\": {},";
+                        }else{
+                            para_bodystr += "\"" + _para_name + replaceStr("\": \"" + _para_format + "\",");
+                        }
+
                     } else {
                         if (!isctset) {
                             isctset = true; //添加contenttype前将isctset设置为true
@@ -497,7 +517,11 @@ public class SwaggerObject {
                         } else if (content_type.contains("x-www-form-urlencoded"))
                             para_bodystr += String.format("&%s=%s", _para_name, replaceStr(_para_format));
                         else if (content_type.contains("json"))
-                            para_bodystr += "\"" + _para_name + replaceStr("\": \"" + _para_format + "\",");
+                            if(_para_format.equals("object")){
+                                para_bodystr += "\"" + _para_name + "\": {},";
+                            }else{
+                                para_bodystr += "\"" + _para_name + replaceStr("\": \"" + _para_format + "\",");
+                            }
                         else if (content_type.contains("form-data")) {
                             para_bodystr += "--" + boundary + newLine + String.format("Content-Disposition: form-data; name=\"%s\";", _para_name) + newLine + newLine + replaceStr(_para_format) + newLine;
                         } else if (content_type.contains("xml")) ;
@@ -556,10 +580,10 @@ public class SwaggerObject {
         switch (method) {
             case "GET":
             case "PATCH":
-            case "DELETE":
-                break;
+        //    case "DELETE":
             case "POST":
-//            case "PUT":    //避免开启探测之后出事 PUT DELETE不搞了
+        //    case "PUT":
+                //避免开启探测之后出事 PUT DELETE不搞了
             default:
                 newheaders.add("Content-Length: " + para_bodystr.length());
         }

@@ -73,6 +73,7 @@ public class ApiTypeSwagger extends ApiType {
                 urlAddPath(urlPath + "/api/");
                 //python swagger flasgger
                 urlAddPath(urlPath + "/apidocs/");
+                urlAddPath(urlPath + "/V2/api-docs");
                 //
                 urlAddPath(urlPath + "/");
             }
@@ -109,6 +110,9 @@ public class ApiTypeSwagger extends ApiType {
 
 
         //访问的/swagger-resources 和 swagger2 的/api-docs 等如果不是200 则返回false
+        if (newHttpRequestResponse == null){
+            return false;
+        }
         if (helpers.analyzeResponse(newHttpRequestResponse.getResponse()).getStatusCode() == 200) {
             if (this.isPassive) {
                 if (scannedUrl.get(helpers.analyzeRequest(newHttpRequestResponse).getUrl().toString()) <= 0) {
@@ -253,6 +257,7 @@ public class ApiTypeSwagger extends ApiType {
 
     @Override
     public ArrayList<ApiEndpoint> parseApiDocument(IHttpRequestResponse apiDocument) {
+        String url = helpers.analyzeRequest(this.baseRequestResponse).getUrl().getPath();
         PrintWriter stdout = new PrintWriter(this.callbacks.getStdout(), true);
         //传入的是/api-docs 的json / yaml数据
         //String urlRootPath = CommonUtils.getUrlRootPath(helpers.analyzeRequest(this.baseRequestResponse).getUrl());
@@ -278,7 +283,7 @@ public class ApiTypeSwagger extends ApiType {
         if (jsonobject != null) {
             if (jsonobject.isJsonObject()) {
                 try {
-                    SwaggerObject swaggerObject = new SwaggerObject(headers);
+                    SwaggerObject swaggerObject = new SwaggerObject(headers,url);
                     swaggerObject.SwaggerParseObject(jsonobject.getAsJsonObject());
                     HashMap<List<String>, byte[]> apiRequest = swaggerObject.apiRequestResponse;
                     for (Map.Entry<List<String>, byte[]> apiReq : apiRequest.entrySet()) {
