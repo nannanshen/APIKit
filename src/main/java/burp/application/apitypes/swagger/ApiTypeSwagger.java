@@ -74,7 +74,7 @@ public class ApiTypeSwagger extends ApiType {
                 //python swagger flasgger
                 urlAddPath(urlPath + "/apidocs/");
                 //
-                urlAddPath(urlPath + "/");
+                //urlAddPath(urlPath + "/");
             }
         }
 
